@@ -1,0 +1,124 @@
+#!/bin/bash
+# PATH=./node_modules/.bin:$PATH
+
+# https://www.tldp.org/LDP/abs/html/options.html
+# Similar to -v (Print each command to stdout before executing it), but expands commands
+# set -o xtrace
+set -o verbose
+
+# Abort script at first error, when a command exits with non-zero status (except in until or while loops, if-tests, list constructs)
+set -o errexit
+
+# Causes a pipeline to return the exit status of the last command in the pipe that returned a non-zero return value.
+set -o pipefail
+
+# Attempt to use undefined variable outputs error message, and forces an exit
+set -o nounset
+
+# full path current folder
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# full path of the script.sh (including the name)
+__file="${__dir}/$(basename "${BASH_SOURCE[0]}")"
+
+# name of the script
+__base="$(basename ${__file} .sh)"
+
+# full path of the parent folder
+__root="$(cd "$(dirname "${__dir}")" && pwd)" # <-- change this as it depends on your app
+
+function assert_env () {
+    source "$__dir"/".venv/bin/activate" || exit 1
+    echo "Pip location:"
+    pip_cmd=$(command -v pip)
+    echo "$pip_cmd"
+
+    current=$(pwd)
+    pip_path="$current/.venv/bin/pip"
+    echo "$pip_path"
+
+    if [[ "$pip_cmd" -ef "$pip_path" ]]; then
+        echo "paths match"
+    else
+        exit 1
+    fi
+}
+
+function clean () {
+    rm -rf $(find . -name __pycache__)
+    rm -f $(find . -type f -name '*.py[co]' )
+    rm -f $(find . -type f -name '*~' )
+    rm -f $(find . -type f -name '.*~' )
+    rm -rf .cache
+    rm -rf .pytest_cache
+    rm -rf htmlcov
+    rm -rf ./*.egg-info
+    rm -f .coverage
+    rm -f .coverage.*
+    rm -rf build/
+    rm -rf dist/
+    rm -fr .eggs/
+    find . -name '*.egg-info' -exec rm -fr {} +
+    find . -name '*.egg' -exec rm -f {} +
+}
+
+function deps () {
+    assert_env
+    pip install pip-tools pip setuptools
+    pip-compile -v --build-isolation --generate-hashes --allow-unsafe --output-file requirements/main.txt requirements/main.in & \
+    pip-compile -v --build-isolation --generate-hashes --allow-unsafe --output-file requirements/dev.txt requirements/dev.in
+}
+
+function update () {
+    assert_env
+    pip install --upgrade pip-tools pip setuptools
+    pip-compile -v --upgrade --build-isolation --generate-hashes --allow-unsafe --output-file requirements/main.txt requirements/main.in & \
+    pip-compile -v --upgrade --build-isolation --generate-hashes --allow-unsafe --output-file requirements/dev.txt requirements/dev.in
+}
+
+function install {
+    assert_env
+    echo "install task not implemented"
+    pip_cmd=$(command -v pip)
+    echo "$pip_cmd"
+}
+
+function format () {
+    assert_env
+    isort --recursive  --force-single-line-imports --apply "$__dir"/app/
+    autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place "$__dir"/app/ --exclude=__init__.py
+    isort --multi-line=3 --trailing-comma --force-grid-wrap=0 --combine-as --line-width 88 --recursive --apply "$__dir"/app/
+    black "$__dir"/app/
+}
+
+
+function report () {
+    echo "Flake8 report:" > "$__dir"/code_report.txt
+    flake8 "$__dir"/app/ >> code_report.txt
+    echo "Bandit report:" >> code_report.txt
+    bandit -r "$__dir"/app/ >> "$__dir"/code_report.txt
+}
+
+function build {
+    echo "build task not implemented"
+}
+
+function start {
+    echo "running app with uvicorn"
+    assert_env
+    uvicorn --workers 2 app.main:app --reload
+}
+
+function default {
+    # start
+    clean
+}
+
+function help {
+    echo "$0 <task> <args>"
+    echo "Tasks:"
+    compgen -A function | cat -n
+}
+
+TIMEFORMAT="Task completed in %3lR"
+time ${@:-default}
