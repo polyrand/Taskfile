@@ -1,29 +1,21 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # PATH=./node_modules/.bin:$PATH
-
 # https://www.tldp.org/LDP/abs/html/options.html
 # Similar to -v (Print each command to stdout before executing it), but expands commands
 # set -o xtrace
 set -o verbose
-
 # Abort script at first error, when a command exits with non-zero status (except in until or while loops, if-tests, list constructs)
 set -o errexit
-
 # Causes a pipeline to return the exit status of the last command in the pipe that returned a non-zero return value.
 set -o pipefail
-
 # Attempt to use undefined variable outputs error message, and forces an exit
 set -o nounset
-
 # full path current folder
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 # full path of the script.sh (including the name)
 __file="${__dir}/$(basename "${BASH_SOURCE[0]}")"
-
 # name of the script
 __base="$(basename ${__file} .sh)"
-
 # full path of the parent folder
 __root="$(cd "$(dirname "${__dir}")" && pwd)" # <-- change this as it depends on your app
 
@@ -77,10 +69,7 @@ function update () {
 }
 
 function install {
-    assert_env
     echo "install task not implemented"
-    pip_cmd=$(command -v pip)
-    echo "$pip_cmd"
 }
 
 function format () {
@@ -99,8 +88,21 @@ function report () {
     bandit -r "$__dir"/app/ >> "$__dir"/code_report.txt
 }
 
-function build {
+function build () {
     echo "build task not implemented"
+}
+
+function tester () {
+    echo "not implemented"
+}
+
+function buildprod {
+    echo "build task not implemented"
+    assert_env
+    # this runs in parallel
+    format & deps & tester & 
+    wait
+    echo "not implemented"
 }
 
 function start {
