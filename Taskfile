@@ -2,8 +2,8 @@
 # PATH=./node_modules/.bin:$PATH
 # https://www.tldp.org/LDP/abs/html/options.html
 # Similar to -v (Print each command to stdout before executing it), but expands commands
-# set -o xtrace
-set -o verbose
+set -o xtrace
+# set -o verbose
 # Abort script at first error, when a command exits with non-zero status (except in until or while loops, if-tests, list constructs)
 set -o errexit
 # Causes a pipeline to return the exit status of the last command in the pipe that returned a non-zero return value.
