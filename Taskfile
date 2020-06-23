@@ -94,6 +94,8 @@ function build () {
 
 function tester () {
     echo "not implemented"
+    assert_env
+    # pytest ...
 }
 
 function buildprod {
@@ -103,6 +105,7 @@ function buildprod {
     format & deps & tester & 
     wait
     echo "not implemented"
+    # shiv ...
 }
 
 function start {
