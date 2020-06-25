@@ -19,7 +19,8 @@ __base="$(basename ${__file} .sh)"
 # full path of the parent folder
 __root="$(cd "$(dirname "${__dir}")" && pwd)" # <-- change this as it depends on your app
 
-export SOURCE_FILES="app tests"
+export appdir="$__dir"/app
+export SOURCE_FILES="$appdir tests"
 
 function assert_env () {
     source "$__dir"/".venv/bin/activate" || exit 1
@@ -77,18 +78,18 @@ function install {
 function lint () {
     assert_env
     seed-isort-config --application-directories=app
-    isort --recursive  --force-single-line-imports --apply "$__dir"/app/
-    autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place "$__dir"/app/ --exclude=__init__.py
-    isort --multi-line=3 --trailing-comma --force-grid-wrap=0 --combine-as --line-width 88 --recursive --apply "$__dir"/app/
-    black "$__dir"/app/
+    isort --recursive  --force-single-line-imports --apply "$__dir"/"$appdir"
+    autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place "$__dir"/"$appdir" --exclude=__init__.py
+    isort --multi-line=3 --trailing-comma --force-grid-wrap=0 --combine-as --line-width 88 --recursive --apply "$__dir"/"$appdir"
+    black "$__dir"/"$appdir"
 }
 
 
 function report () {
     echo "Flake8 report:" > "$__dir"/code_report.txt
-    flake8 "$__dir"/app/ >> code_report.txt
+    flake8 "$__dir"/"$appdir" >> code_report.txt
     echo "Bandit report:" >> code_report.txt
-    bandit -r "$__dir"/app/ >> "$__dir"/code_report.txt
+    bandit -r "$__dir"/"$appdir" >> "$__dir"/code_report.txt
 }
 
 function publish () {
@@ -140,7 +141,7 @@ function buildprod {
 function start {
     echo "running app with uvicorn"
     assert_env
-    uvicorn --workers 2 app.main:app --reload
+    uvicorn --workers 2 app.main:app --reload --reload-dir "$appdir"
 }
 
 function default {
