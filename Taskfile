@@ -19,6 +19,8 @@ __base="$(basename ${__file} .sh)"
 # full path of the parent folder
 __root="$(cd "$(dirname "${__dir}")" && pwd)" # <-- change this as it depends on your app
 
+export SOURCE_FILES="app tests"
+
 function assert_env () {
     source "$__dir"/".venv/bin/activate" || exit 1
     echo "Pip location:"
@@ -72,8 +74,9 @@ function install {
     echo "install task not implemented"
 }
 
-function format () {
+function lint () {
     assert_env
+    seed-isort-config --application-directories=app
     isort --recursive  --force-single-line-imports --apply "$__dir"/app/
     autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place "$__dir"/app/ --exclude=__init__.py
     isort --multi-line=3 --trailing-comma --force-grid-wrap=0 --combine-as --line-width 88 --recursive --apply "$__dir"/app/
@@ -87,6 +90,32 @@ function report () {
     echo "Bandit report:" >> code_report.txt
     bandit -r "$__dir"/app/ >> "$__dir"/code_report.txt
 }
+
+function publish () {
+    assert_env
+    if ! command -v twine &>/dev/null ; then
+        echo "Unable to find the 'twine' command."
+        echo "Install from PyPI, using 'pip install twine'."
+    exit 1
+    fi
+
+    if ! pip show wheel &>/dev/null ; then
+        echo "Unable to find the 'wheel' command."
+        echo "Install from PyPI, using 'pip install wheel'."
+        exit 1
+    fi
+
+    clean
+
+    python3 setup.py sdist bdist_wheel
+    python3 -m twine upload dist/*
+    echo "You probably want to also tag the version now:"
+    echo "git tag -a ${VERSION} -m 'version ${VERSION}'"
+    echo "git push --tags"
+
+    clean
+}
+
 
 function build () {
     echo "build task not implemented"
