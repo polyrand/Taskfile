@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# PATH=./node_modules/.bin:$PATH
-# https://www.tldp.org/LDP/abs/html/options.html
+#/ PATH=./node_modules/.bin:$PATH
+#/ https://www.tldp.org/LDP/abs/html/options.html
 # Similar to -v (Print each command to stdout before executing it), but expands commands
-set -o xtrace
+# set -o xtrace
 # set -o verbose
 # Abort script at first error, when a command exits with non-zero status (except in until or while loops, if-tests, list constructs)
 set -o errexit
@@ -10,6 +10,8 @@ set -o errexit
 set -o pipefail
 # Attempt to use undefined variable outputs error message, and forces an exit
 set -o nounset
+# makes iterations and splitting less surprising
+IFS=$'\n\t'
 # full path current folder
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # full path of the script.sh (including the name)
@@ -19,7 +21,32 @@ __base="$(basename ${__file} .sh)"
 # full path of the parent folder
 __root="$(cd "$(dirname "${__dir}")" && pwd)" # <-- change this as it depends on your app
 
-export appdir="$__dir"/app
+# Log function
+# This disables and re-enables debug trace mode (only if it was already set)
+# Sources: https://superuser.com/a/1338887/922762 --  https://github.com/Kurento/adm-scripts/blob/master/bash.conf.sh
+shopt -s expand_aliases  # This trick requires enabling aliases in Bash
+BASENAME="$(basename "$0")"  # Complete file name
+echo_and_restore() {
+    echo "[${BASENAME}] $(cat -)"
+    # shellcheck disable=SC2154
+    case "$flags" in (*x*) set -x; esac
+}
+alias log='({ flags="$-"; set +x; } 2>/dev/null; echo_and_restore) <<<'
+
+
+# Exit trap
+# This runs at the end or, thanks to 'errexit', upon any error
+on_exit() {
+    { _RC="$?"; set +x; } 2>/dev/null
+    if ((_RC)); then log "ERROR ($_RC)"; else log "SUCCESS"; fi
+    log "#################### END ####################"
+}
+trap on_exit EXIT
+
+
+log "==================== BEGIN ===================="
+
+export appdir="$__dir"/
 export SOURCE_FILES="$appdir tests"
 
 function assert_env () {
@@ -77,19 +104,19 @@ function install {
 
 function lint () {
     assert_env
-    seed-isort-config --application-directories=app
-    isort --recursive  --force-single-line-imports --apply "$__dir"/"$appdir"
-    autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place "$__dir"/"$appdir" --exclude=__init__.py
-    isort --multi-line=3 --trailing-comma --force-grid-wrap=0 --combine-as --line-width 88 --recursive --apply "$__dir"/"$appdir"
-    black "$__dir"/"$appdir"
+    seed-isort-config --application-directories="$appdir"
+    isort --recursive  --force-single-line-imports --apply "$appdir"
+    autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place "$appdir" --exclude=__init__.py
+    isort --multi-line=3 --trailing-comma --force-grid-wrap=0 --combine-as --line-width 88 --recursive --apply "$appdir"
+    black "$appdir"
 }
 
 
 function report () {
     echo "Flake8 report:" > "$__dir"/code_report.txt
-    flake8 "$__dir"/"$appdir" >> code_report.txt
+    flake8 "$appdir" >> code_report.txt
     echo "Bandit report:" >> code_report.txt
-    bandit -r "$__dir"/"$appdir" >> "$__dir"/code_report.txt
+    bandit -r "$appdir" >> "$__dir"/code_report.txt
 }
 
 function publish () {
@@ -110,11 +137,12 @@ function publish () {
 
     python3 setup.py sdist bdist_wheel
     python3 -m twine upload dist/*
+    clean
+
     echo "You probably want to also tag the version now:"
     echo "git tag -a ${VERSION} -m 'version ${VERSION}'"
     echo "git push --tags"
 
-    clean
 }
 
 
@@ -149,11 +177,15 @@ function default {
     clean
 }
 
-function help {
+function tasks {
     echo "$0 <task> <args>"
     echo "Tasks:"
     compgen -A function | cat -n
 }
 
+# Help message (extracted from script headers)
+usage() { grep '^#/' "$0" | cut --characters=4-; exit 0; }
+REGEX='(^|\W)(-h|--help)($|\W)'
+[[ "$*" =~ $REGEX ]] && usage || true
 TIMEFORMAT="Task completed in %3lR"
 time ${@:-default}
