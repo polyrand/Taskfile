@@ -135,8 +135,14 @@ function publish () {
 
     clean
 
+    log "building package"
     python3 setup.py sdist bdist_wheel
+
+    log "uploading to PyPi"
+
     python3 -m twine upload dist/*
+
+    log "cleaning..."
     clean
 
     echo "You probably want to also tag the version now:"
