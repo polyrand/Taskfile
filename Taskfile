@@ -6,6 +6,8 @@
 # set -o verbose
 # Abort script at first error, when a command exits with non-zero status (except in until or while loops, if-tests, list constructs)
 set -o errexit
+# apply to subprocesses too
+shopt -s inherit_errexit 2>/dev/null || true
 # Causes a pipeline to return the exit status of the last command in the pipe that returned a non-zero return value.
 set -o pipefail
 # Attempt to use undefined variable outputs error message, and forces an exit
@@ -104,10 +106,9 @@ function install {
 
 function lint () {
     assert_env
-    seed-isort-config --application-directories="$appdir"
-    isort --recursive  --force-single-line-imports --apply "$appdir"
+    isort --force-single-line-imports "$appdir"
     autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place "$appdir" --exclude=__init__.py
-    isort --multi-line=3 --trailing-comma --force-grid-wrap=0 --combine-as --line-width 88 --recursive --apply "$appdir"
+    isort --multi-line=3 --trailing-comma --force-grid-wrap=0 --combine-as --line-width 88 "$appdir"
     black "$appdir"
 }
 
@@ -172,7 +173,7 @@ function buildprod {
     # shiv ...
 }
 
-function start {
+function run {
     echo "running app with uvicorn"
     assert_env
     uvicorn --workers 2 app.main:app --reload --reload-dir "$appdir"
