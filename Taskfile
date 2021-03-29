@@ -82,14 +82,14 @@ function clean () {
 function deps () {
     assert_env
     pip install pip-tools pip setuptools
-    pip-compile -v --build-isolation --generate-hashes --allow-unsafe --output-file requirements/main.txt requirements/main.in & \
+    pip-compile -v --build-isolation --generate-hashes --allow-unsafe --output-file requirements/main.txt requirements/main.in && \
     pip-compile -v --build-isolation --generate-hashes --allow-unsafe --output-file requirements/dev.txt requirements/dev.in
 }
 
 function update () {
     assert_env
     pip install --upgrade pip-tools pip setuptools
-    pip-compile -v --upgrade --build-isolation --generate-hashes --allow-unsafe --output-file requirements/main.txt requirements/main.in & \
+    pip-compile -v --upgrade --build-isolation --generate-hashes --allow-unsafe --output-file requirements/main.txt requirements/main.in && \
     pip-compile -v --upgrade --build-isolation --generate-hashes --allow-unsafe --output-file requirements/dev.txt requirements/dev.in
     wait
     pip-sync requirements/*.txt
@@ -97,13 +97,15 @@ function update () {
 }
 
 function install {
-    echo "install task not implemented"
+    assert_env
+    if ! command -v pip-sync; then echo "pip-tools not installed" && exit; fi
+    pip-sync requirements/*.txt
 }
 
 function lint () {
     assert_env
     autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place "$appdir" --exclude=__init__.py
-    isort --multi-line=3 --trailing-comma --force-grid-wrap=0 --combine-as --line-width 88 "$appdir"
+    isort --profile black "$appdir"
     black "$appdir"
 }
 
