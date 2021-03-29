@@ -69,20 +69,13 @@ function assert_env () {
 }
 
 function clean () {
-    rm -rf $(find . -name __pycache__)
-    rm -f $(find . -type f -name '*.py[co]' )
-    rm -f $(find . -type f -name '*~' )
-    rm -f $(find . -type f -name '.*~' )
-    rm -rf .cache
-    rm -rf .pytest_cache
-    rm -rf htmlcov
-    rm -rf ./*.egg-info
-    rm -f .coverage
-    rm -f .coverage.*
-    rm -rf build/
-    rm -rf dist/
-    rm -fr .eggs/
-    find . -name '*.egg-info' -exec rm -fr {} +
+    log "cleaning files"
+    find . -name '__pycache__' -exec rm -fr {} +;
+    find . -name '.ipynb_checkpoints' -exec rm -fr {} +;
+    find . -name '*.pyo' -exec rm -f {} +;
+    find . -name '*.pyc' -exec rm -f {} +;
+    find . -name '*.egg-info' -exec rm -fr {} +;
+    find . -name '*~' -exec rm -f {} +;
     find . -name '*.egg' -exec rm -f {} +
 }
 
@@ -109,7 +102,6 @@ function install {
 
 function lint () {
     assert_env
-    isort --force-single-line-imports "$appdir"
     autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place "$appdir" --exclude=__init__.py
     isort --multi-line=3 --trailing-comma --force-grid-wrap=0 --combine-as --line-width 88 "$appdir"
     black "$appdir"
