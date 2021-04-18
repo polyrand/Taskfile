@@ -88,9 +88,10 @@ function deps () {
 
 function update () {
     assert_env
+    # --build-isolation --generate-hashes
     pip install --upgrade pip-tools pip setuptools
-    pip-compile -v --upgrade --build-isolation --generate-hashes --allow-unsafe --output-file requirements/main.txt requirements/main.in && \
-    pip-compile -v --upgrade --build-isolation --generate-hashes --allow-unsafe --output-file requirements/dev.txt requirements/dev.in
+    pip-compile -v --upgrade --allow-unsafe --output-file requirements/main.txt requirements/main.in && \
+    pip-compile -v --upgrade --allow-unsafe --output-file requirements/dev.txt requirements/dev.in
     wait
     pip-sync requirements/*.txt
 
